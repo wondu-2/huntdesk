@@ -1185,23 +1185,32 @@ async function sendToSheet(url, logEntry, result) {
   showNotif('✅ Google Sheets에 기록되었습니다!', 'success');
 }
 
-// Sheet 호출 공통 함수 — fetch(no-cors) 후 img 픽셀 fallback
+// Sheet 호출 — hidden iframe으로 리다이렉트 완전 우회
 function callSheet(url, params) {
   return new Promise((resolve) => {
     const fullUrl = url + '?' + params.toString();
 
-    // 1차: fetch no-cors
-    fetch(fullUrl, { method: 'GET', mode: 'no-cors', cache: 'no-store' })
-      .then(() => resolve(true))
-      .catch(() => {
-        // 2차: img 픽셀 (fetch 실패 시)
-        const img = new Image();
-        img.onload = img.onerror = () => resolve(true);
-        img.src = fullUrl + '&t=' + Date.now();
-      });
+    // hidden iframe으로 호출 (리다이렉트 자동 처리, CORS 무관)
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'display:none;width:0;height:0;border:none;position:absolute;';
+    iframe.src = fullUrl;
+    iframe.onload = () => {
+      setTimeout(() => {
+        iframe.remove();
+        resolve(true);
+      }, 500);
+    };
+    iframe.onerror = () => {
+      iframe.remove();
+      resolve(true);
+    };
+    document.body.appendChild(iframe);
 
-    // 8초 타임아웃 보장
-    setTimeout(() => resolve(true), 8000);
+    // 10초 타임아웃
+    setTimeout(() => {
+      if (iframe.parentNode) iframe.remove();
+      resolve(true);
+    }, 10000);
   });
 }
 
