@@ -1185,33 +1185,19 @@ async function sendToSheet(url, logEntry, result) {
   showNotif('✅ Google Sheets에 기록되었습니다!', 'success');
 }
 
-// Sheet 호출 — hidden iframe으로 리다이렉트 완전 우회
-function callSheet(url, params) {
-  return new Promise((resolve) => {
-    const fullUrl = url + '?' + params.toString();
-
-    // hidden iframe으로 호출 (리다이렉트 자동 처리, CORS 무관)
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'display:none;width:0;height:0;border:none;position:absolute;';
-    iframe.src = fullUrl;
-    iframe.onload = () => {
-      setTimeout(() => {
-        iframe.remove();
-        resolve(true);
-      }, 500);
-    };
-    iframe.onerror = () => {
-      iframe.remove();
-      resolve(true);
-    };
-    document.body.appendChild(iframe);
-
-    // 10초 타임아웃
-    setTimeout(() => {
-      if (iframe.parentNode) iframe.remove();
-      resolve(true);
-    }, 10000);
-  });
+// Sheet 호출 — fetch redirect follow
+async function callSheet(url, params) {
+  const fullUrl = url + '?' + params.toString();
+  try {
+    await fetch(fullUrl, {
+      method: 'GET',
+      redirect: 'follow',
+      mode: 'no-cors',
+      cache: 'no-store'
+    });
+  } catch(e) {
+    // no-cors는 opaque response라 오류 무시
+  }
 }
 
 // ─── RENDER LOGS ─────────────────────────────────────────────────────────────
